@@ -110,6 +110,20 @@ button:last-child{
 button:last-child:hover{
     color: #b91c1c;
 }
+
+.input-error{
+    border: 2px solid #dc2626 !important;
+}
+
+select{
+    padding:6px;
+    font-size:13px;
+    border:1px solid #ccc;
+    border-radius:4px;
+    width:95%;
+    background:white;
+}
+
 </style>
 </head>
 <body>
@@ -216,7 +230,28 @@ function editRow(button){
 
     nameCell.innerHTML = `<input type="text" value="${nameCell.innerText}">`;
     emailCell.innerHTML = `<input type="text" value="${emailCell.innerText}">`;
-    cityCell.innerHTML = `<input type="text" value="${cityCell.innerText}">`;
+    let currentCity = cityCell.innerText;
+
+cityCell.innerHTML = `
+<select>
+    <option value="">Select City</option>
+    <option ${currentCity === "Noida" ? "selected" : ""}>Noida</option>
+    <option ${currentCity === "Delhi" ? "selected" : ""}>Delhi</option>
+    <option ${currentCity === "Mumbai" ? "selected" : ""}>Mumbai</option>
+    <option ${currentCity === "Jaipur" ? "selected" : ""}>Jaipur</option>
+    <option ${currentCity === "Lucknow" ? "selected" : ""}>Lucknow</option>
+    <option ${currentCity === "Indore" ? "selected" : ""}>Noida</option>
+    <option ${currentCity === "New Delhi" ? "selected" : ""}>Delhi</option>
+    <option ${currentCity === "Amritsar" ? "selected" : ""}>Mumbai</option>
+    <option ${currentCity === "Varansi" ? "selected" : ""}>Jaipur</option>
+    <option ${currentCity === "Surat" ? "selected" : ""}>Lucknow</option>
+    <option ${currentCity === "Banglore" ? "selected" : ""}>Noida</option>
+    <option ${currentCity === "Srinagar" ? "selected" : ""}>Delhi</option>
+    <option ${currentCity === "Hyderabad" ? "selected" : ""}>Mumbai</option>
+    <option ${currentCity === "Bhopal" ? "selected" : ""}>Jaipur</option>
+    <option ${currentCity === "Agra" ? "selected" : ""}>Lucknow</option>
+</select>
+`;
     usernameCell.innerHTML = `<input type="text" value="${usernameCell.innerText}">`;
 
     button.innerHTML = '<i class="fa-solid fa-floppy-disk"></i>';
@@ -231,10 +266,52 @@ function saveRow(button){
     let row = button.closest("tr");
     let id = row.getAttribute("data-id");
 
-    let name = row.children[1].querySelector("input").value;
-    let email = row.children[2].querySelector("input").value;
-    let city = row.children[3].querySelector("input").value;
-    let username = row.children[4].querySelector("input").value;
+    let nameInput = row.children[1].querySelector("input");
+    let emailInput = row.children[2].querySelector("input");
+    let cityInput = row.children[3].querySelector("select");
+    let usernameInput = row.children[4].querySelector("input");
+
+    let name = nameInput.value.trim();
+    let email = emailInput.value.trim().toLowerCase();
+    let city = cityInput.value.trim();
+    let username = usernameInput.value.trim();
+
+    // remove old errors
+    [nameInput, emailInput, cityInput, usernameInput].forEach(input=>{
+        input.classList.remove("input-error");
+    });
+
+    let hasError = false;
+
+    // NAME
+    if(!/^[A-Za-z ]{4,}$/.test(name)){
+        nameInput.classList.add("input-error");
+        alert("Name must contain only letters & minimum 4 characters ❌");
+        hasError = true;
+    }
+
+    // EMAIL
+    if(!/^[a-z0-9._%+-]+@gmail\.com$/.test(email)){
+        emailInput.classList.add("input-error");
+        alert("Only valid Gmail address allowed ❌");
+        hasError = true;
+    }
+
+    // CITY
+    if(!city){
+    cityInput.classList.add("input-error");
+    alert("Please select a city ❌");
+    hasError = true;
+}
+
+    // USERNAME
+    if(!/^[A-Za-z0-9]{4,}$/.test(username) || username.includes("@")){
+        usernameInput.classList.add("input-error");
+        alert("Username must be letters & numbers only (no @ allowed) ❌");
+        hasError = true;
+    }
+
+    if(hasError) return;
 
     fetch(`http://localhost:1000/student/${id}`, {
         method: "PUT",
@@ -248,8 +325,15 @@ function saveRow(button){
             username
         })
     })
-    .then(res => res.json())
-    .then(data => {
+    .then(async res=>{
+        let data = await res.json();
+
+        if(!res.ok){
+            alert(data.message);
+            return;
+        }
+
+        alert(data.message);
 
         row.children[1].innerText = name;
         row.children[2].innerText = email;
@@ -262,8 +346,7 @@ function saveRow(button){
         };
 
         currentEditingRow = null;
-    })
-    .catch(err => console.log(err));
+    });
 }
 
 // ===== RESET ROW =====
