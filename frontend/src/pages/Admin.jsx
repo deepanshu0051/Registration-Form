@@ -8,8 +8,26 @@ import StudentPreviewModal from '../modals/StudentPreviewModal';
 import './Admin.css';
 
 const allowedCities = [
-    "Noida", "Delhi", "Mumbai", "Jaipur", "Lucknow", "Indore", "New Delhi",
-    "Amritsar", "Varansi", "Surat", "Banglore", "Srinagar", "Hyderabad", "Bhopal", "Agra"
+"Noida",
+"Delhi",
+"New Delhi",
+"Ghaziabad",
+"Gautam Buddha Nagar",
+"South Delhi",
+"North West Delhi",
+"Mumbai",
+"Jaipur",
+"Lucknow",
+"Indore",
+"Amritsar",
+"Varanasi",
+"Surat",
+"Bangalore",
+"Bengaluru",
+"Srinagar",
+"Hyderabad",
+"Bhopal",
+"Agra"
 ];
 
 const Admin = () => {
@@ -128,9 +146,18 @@ const Admin = () => {
                                     <td className="admin-td"><input className="admin-input" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} /></td>
                                     <td className="admin-td"><input className="admin-input" type="email" value={editData.email} onChange={e => setEditData({...editData, email: e.target.value})} /></td>
                                     <td className="admin-td">
-                                        <select className="admin-select" value={editData.city} onChange={e => setEditData({...editData, city: e.target.value})}>
-                                            <option value="">Select City</option>
-                                            {allowedCities.map(c => <option key={c} value={c}>{c}</option>)}
+                                        <select
+                                             className="admin-select"
+                                             value={editData.city || ""}
+                                             onChange={e => setEditData({...editData, city: e.target.value})} >
+                                             <option value="">Select City</option>  { }
+                                             {editData.city && !allowedCities.includes(editData.city) && (
+                                               <option value={editData.city}>{editData.city}</option>
+                                             )}
+
+                                             {allowedCities.map(c => (
+                                               <option key={c} value={c}>{c}</option>
+                                             ))}
                                         </select>
                                     </td>
                                     <td className="admin-td"><input className="admin-input" value={editData.username} onChange={e => setEditData({...editData, username: e.target.value})} /></td>
