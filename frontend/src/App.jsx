@@ -25,7 +25,7 @@ const App = () => {
             <Routes>
                 <Route path="/" element={<Navigate to="/register" replace />} />
                 <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-                <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+                <Route path="/register" element={<Register />} />
                 <Route path="/admin" element={<PrivateRoute><Admin /></PrivateRoute>} />
                 <Route path="*" element={<Navigate to="/register" replace />} />
             </Routes>
