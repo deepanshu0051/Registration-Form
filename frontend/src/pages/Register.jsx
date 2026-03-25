@@ -6,10 +6,13 @@ import api from '../services/api';
 import StudentPreviewModal from '../modals/StudentPreviewModal';
 import { getPasswordStrength } from '../utils/validationUtils';
 
+
 const isdCountryMap = {
-    "+91": "India", "+92": "Pakistan", "+1": "United States", "+44": "United Kingdom",
-    "+61": "Australia", "+81": "Japan", "+86": "China", "+7": "Russia", "+49": "Germany",
-    "+33": "France", "+971": "UAE", "+880": "Bangladesh", "+94": "Sri Lanka", "+39": "Italy", "+34": "Spain"
+    "+91": "India", "+92": "Pakistan", "+1": "United States",
+    "+44": "United Kingdom", "+61": "Australia", "+81": "Japan",
+    "+86": "China", "+7": "Russia", "+49": "Germany",
+    "+33": "France", "+971": "UAE", "+880": "Bangladesh",
+    "+94": "Sri Lanka", "+39": "Italy", "+34": "Spain"
 };
 
 const Register = () => {
@@ -58,26 +61,40 @@ const Register = () => {
         let newValue = value;
 
         if (id === 'isd') {
-            const cleanValue = value.replace(/[^+0-9]/g, "");
-            let matchedISD = null;
-            for (let code in isdCountryMap) {
-                if (cleanValue.startsWith(code)) {
-                    matchedISD = code;
-                    break;
-                }
+            // Only allow + and digits
+            let cleanValue = value.replace(/[^+0-9]/g, '');
+
+            // Auto-add + at start
+            if (cleanValue.length > 0 && !cleanValue.startsWith('+')) {
+                cleanValue = '+' + cleanValue;
             }
-            if (matchedISD) {
-                const numberPart = cleanValue.slice(matchedISD.length).replace(/[^0-9]/g, "").slice(0, 10);
-                newValue = matchedISD + numberPart;
-                setFormData(prev => ({ ...prev, country: isdCountryMap[matchedISD] }));
-                
-                if (numberPart.length < 10) setErrors(prev => ({ ...prev, isd: "Enter 10 digit number after ISD" }));
-                else setErrors(prev => ({ ...prev, isd: "" }));
-            } else {
-                newValue = cleanValue.slice(0, 4);
-                setFormData(prev => ({ ...prev, country: "" }));
+
+            // Keep + only at position 0
+            const plusCount = (cleanValue.match(/\+/g) || []).length;
+            if (plusCount > 1) {
+                cleanValue = '+' + cleanValue.replace(/\+/g, '');
             }
-        } 
+
+            // Max 13 chars
+            cleanValue = cleanValue.slice(0, 13);
+            newValue = cleanValue;
+
+            // Auto-fill Country from ISD prefix
+            const matchedISD = Object.keys(isdCountryMap)
+                .filter(code => cleanValue.startsWith(code))
+                .sort((a, b) => b.length - a.length)[0];
+            const matchedCountry = matchedISD ? isdCountryMap[matchedISD] : '';
+            setFormData(prev => ({ ...prev, country: matchedCountry }));
+
+            // Validate format
+            const isValid = /^\+[0-9]{1,12}$/.test(cleanValue);
+            setErrors(prev => ({
+                ...prev,
+                isd: cleanValue.length > 1 && !isValid
+                    ? 'Phone number must start with + ISD code'
+                    : ''
+            }));
+        }
         else if (id === 'pincode') {
             newValue = value.replace(/[^0-9]/g, "").slice(0, 6);
             if (newValue.length < 6) {
@@ -88,7 +105,7 @@ const Register = () => {
                     .then(data => {
                         if (data[0].Status === "Success") {
                             const po = data[0].PostOffice[data[0].PostOffice.length - 1];
-                            setFormData(prev => ({ ...prev, city: po.District, state: po.State, country: po.Country }));
+                            setFormData(prev => ({ ...prev, city: po.District, state: po.State }));
                             setErrors(prev => ({ ...prev, pincode: "" }));
                         } else {
                             setErrors(prev => ({ ...prev, pincode: "Invalid Pincode" }));
@@ -113,17 +130,20 @@ const Register = () => {
     };
 
     const confirmRegistration = async () => {
+        if (loading) return;
         setLoading(true);
         try {
             const res = await api.post('/students/register', formData);
-            if (res.data.success) {
-                toast.success(res.data.message);
-                setShowPreview(false);
-                setToken(res.data.token);
-                setUser(res.data.user);
-                navigate('/admin');
-            }
+            console.log(res.data);
+
+            // Save token and user to localStorage
+            localStorage.setItem("token", res.data.token);
+            localStorage.setItem("user", JSON.stringify(res.data.user));
+
+            navigate('/admin');
+
         } catch (error) {
+            console.log("ERROR", error.response?.data);
             toast.error(error.response?.data?.message || "Registration Failed");
         } finally {
             setLoading(false);
@@ -135,7 +155,7 @@ const Register = () => {
     return (
         <div className="form-box">
             <h2>Student Registration Form</h2>
-            <form onSubmit={(e) => { e.preventDefault(); handlePreview(); }} autoComplete="off">
+            <form autoComplete="off">
                 {Object.keys(formData).map(key => {
                     if (key === 'country') return (
                         <div key={key}>
@@ -155,22 +175,25 @@ const Register = () => {
                     if (key === 'dob') type = "date";
                     if (key === 'password' || key === 'confirmPassword') type = "password";
                     if (key === 'confirmPassword') placeholder = "Confirm Password";
-                    if (key === 'isd') placeholder = "+91";
+                    if (key === 'isd') placeholder = "Mobile Number";
                     let currentType = type;
                     if (type === "password") {
                         currentType = showPassword ? "text" : "password";
                     }
-                    
+
                     return (
                         <div key={key} className={type === "password" ? "password-container" : ""}>
-                            <input 
-                                type={currentType} 
-                                id={key} 
-                                placeholder={placeholder} 
-                                value={formData[key]} 
-                                onChange={handleChange} 
-                                className={errors[key] ? "invalid" : (formData[key] ? "valid" : "")} 
-                                required 
+                            <input
+                                type={currentType}
+                                id={key}
+                                placeholder={placeholder}
+                                value={formData[key]}
+                                onChange={key === "city" || key === "state" ? undefined : handleChange}
+
+                                readOnly={key === "city" || key === "state"}
+
+                                className={errors[key] ? "invalid" : (formData[key] ? "valid" : "")}
+                                required
                                 autoComplete="new-password"
                             />
                             {type === "password" && (
@@ -180,7 +203,8 @@ const Register = () => {
                             )}
                             {key === 'password' && (
                                 <div style={{ height: '3px', width: '100%', backgroundColor: '#eee', marginTop: '2px', borderRadius: '2px', overflow: 'hidden' }}>
-                                    <div style={{ height: '100%', width: strength.width, backgroundColor: strength.color, transition: 'width 0.3s ease, background-color 0.3s ease' }}></div>
+                                    <div style={{ height: '100%', width: strength.width, backgroundColor: strength.color, transition: 'width 0.3s ease, background-color 0.3s ease' }}>
+                                    </div>
                                 </div>
                             )}
                             <small style={{ color: "red" }}>{errors[key]}</small>
@@ -190,25 +214,26 @@ const Register = () => {
 
                 <div className="btn-row">
                     <button type="button" className="btn-secondary" onClick={handlePreview}>Preview</button>
-                    <button type="submit" className="btn-primary">Submit</button>
+                    <button type="button" className="btn-primary" onClick={handlePreview}>Submit</button>
                 </div>
 
                 <div style={{ textAlign: "center", marginTop: "10px" }}>
-                    <button type="button" className="btn-outline" style={{width: '50%', borderRadius:'20px', padding:'8px'}} onClick={() => navigate('/admin')}>
+                    <button type="button" className="btn-outline" style={{ width: '50%', borderRadius: '20px', padding: '8px' }}
+                        onClick={() => navigate('/admin')}>
                         Show Table
                     </button>
                 </div>
-                
+
                 <p style={{ textAlign: "center", marginTop: "15px" }}>
                     Already have an account? <Link to="/login" style={{ color: "#2563eb", fontWeight: "600", textDecoration: "none" }}>Login</Link>
                 </p>
             </form>
 
             {showPreview && (
-                <StudentPreviewModal 
-                    data={formData} 
-                    onConfirm={confirmRegistration} 
-                    onEdit={() => setShowPreview(false)} 
+                <StudentPreviewModal
+                    data={formData}
+                    onConfirm={confirmRegistration}
+                    onEdit={() => setShowPreview(false)}
                     loading={loading}
                 />
             )}
