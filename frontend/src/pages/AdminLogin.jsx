@@ -4,42 +4,26 @@ import { toast } from 'react-toastify';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import api from '../services/api';
 import { setToken, setUser } from '../utils/tokenUtils';
-import ForgotPasswordModal from '../modals/ForgotPasswordModal';
+import AdminForgotPasswordModal from '../modals/AdminForgotPasswordModal';
 
-const Login = () => {
+const AdminLogin = () => {
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const [showForgotModal, setShowForgotModal] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [showModal, setShowModal] = useState(false);
-
-    const handleForgotPasswordClick = async () => {
-        if (!email) {
-            toast.error("Please enter your email first");
-            return;
-        }
-        try {
-            const res = await api.post('/auth/verify-email', { email });
-            if (res.data.success) {
-                setShowModal(true);
-            }
-        } catch (error) {
-            toast.error(error.response?.data?.message || "User does not exist");
-        }
-    };
 
     const handleLogin = async (e) => {
         e.preventDefault();
         setLoading(true);
         try {
-            const res = await api.post('/auth/login', { email, password });
+            const res = await api.post('/admin/login', { email, password });
             if (res.data.success) {
                 toast.success(res.data.message);
                 setToken(res.data.token);
                 setUser(res.data.user);
-                sessionStorage.removeItem('tempAccess');
-                navigate('/student/dashboard');
+                navigate('/admin/dashboard');
             }
         } catch (error) {
             toast.error(error.response?.data?.message || "Login failed");
@@ -50,7 +34,7 @@ const Login = () => {
 
     return (
         <div className="form-box">
-            <h2>Student Login</h2>
+            <h2>Admin Login</h2>
             <form onSubmit={handleLogin} autoComplete="off">
                 <input 
                     type="email" 
@@ -71,14 +55,9 @@ const Login = () => {
                         {showPassword ? <FaEyeSlash /> : <FaEye />}
                     </span>
                 </div>
-                
-                <div style={{ textAlign: "right", marginTop: "5px" }}>
-                    <span 
-                        style={{ color: "#2563eb", cursor: "pointer", fontSize: "12px", fontWeight: "600" }} 
-                        onClick={handleForgotPasswordClick}
-                    >
-                        Forgot Password?
-                    </span>
+
+                <div style={{ textAlign: "right", marginTop: "5px", marginBottom: "15px" }}>
+                    <span style={{ color: "#2563eb", cursor: "pointer", fontSize: "14px", fontWeight: "600" }} onClick={() => setShowForgotModal(true)}>Forgot Password?</span>
                 </div>
 
                 <div className="btn-row">
@@ -91,13 +70,13 @@ const Login = () => {
                 </div>
                 
                 <p style={{ textAlign: "center", marginTop: "15px" }}>
-                    Don't have an account? <Link to="/student/register" style={{ color: "#2563eb", fontWeight: "600", textDecoration: "none" }}>Register</Link>
+                    Don't have an admin account? <Link to="/admin/register" style={{ color: "#2563eb", fontWeight: "600", textDecoration: "none" }}>Register</Link>
                 </p>
             </form>
-
-            {showModal && <ForgotPasswordModal email={email} onClose={() => setShowModal(false)} />}
+            
+            {showForgotModal && <AdminForgotPasswordModal onClose={() => setShowForgotModal(false)} />}
         </div>
     );
 };
 
-export default Login;
+export default AdminLogin;

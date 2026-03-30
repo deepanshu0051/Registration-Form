@@ -13,15 +13,11 @@ const StudentPreviewModal = ({ data, onConfirm, onEdit, loading }) => {
                 <h3 style={{ textAlign: "center", color: '#1e3a8a', marginTop: 0 }}>Preview Student Details</h3>
                 <div style={{ lineHeight: '1.6', fontSize: '14px', marginBottom: '15px' }}>
                     <p><b>Name:</b> {data.name}</p>
-                    <p><b>ISD:</b> {data.isd}</p>
+                    <p><b>Phone:</b> {data.phone}</p>
                     <p><b>Email:</b> {data.email}</p>
-                    <p><b>Address:</b> {data.address}</p>
-                    <p><b>Pincode:</b> {data.pincode}</p>
                     <p><b>City:</b> {data.city}</p>
-                    <p><b>State:</b> {data.state}</p>
-                    <p><b>Country:</b> {data.country}</p>
-                    <p><b>DOB:</b> {data.dob}</p>
-                    <p><b>Username:</b> {data.username}</p>
+                    <p><b>Course:</b> {data.course}</p>
+                    <p><b>Year:</b> {data.year}</p>
                 </div>
 
                 <div className="btn-row">

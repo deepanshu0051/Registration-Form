@@ -8,9 +8,8 @@ function cleanInput(input) {
     return sanitizeHtml(input.trim(), { allowedTags: [], allowedAttributes: {} });
 }
 
-// @desc    Login user / Admin
-// @route   POST /api/auth/login
-// @access  Public
+//    Login user / Admin
+
 const login = async (req, res) => {
     try {
         const email = cleanInput(req.body.email)?.toLowerCase();
@@ -35,7 +34,7 @@ const login = async (req, res) => {
 
         if (match) {
             const token = jwt.sign(
-                { id: user.id, username: user.username }, 
+                { id: user.id, email: user.email }, 
                 process.env.JWT_SECRET || "super_secret_jwt_key_that_should_be_long_and_random", 
                 { expiresIn: process.env.JWT_EXPIRES_IN || "1d" }
             );
@@ -44,7 +43,7 @@ const login = async (req, res) => {
                 success: true,
                 message: "Login Successful",
                 token,
-                user: { id: user.id, name: user.name, email: user.email, username: user.username }
+                user: { id: user.id, name: user.name, email: user.email }
             });
         } else {
             res.status(401).json({ success: false, message: "Invalid Email or Password" });
@@ -55,9 +54,8 @@ const login = async (req, res) => {
     }
 };
 
-// @desc    Reset Password
-// @route   POST /api/auth/reset-password
-// @access  Public
+//    Reset Password
+
 const resetPassword = async (req, res) => {
     try {
         const email = cleanInput(req.body.email)?.toLowerCase();
@@ -90,9 +88,8 @@ const resetPassword = async (req, res) => {
     }
 };
 
-// @desc    Verify Email before Reset Password
-// @route   POST /api/auth/verify-email
-// @access  Public
+//    Verify Email before Reset Password
+
 const verifyEmail = async (req, res) => {
     try {
         const email = cleanInput(req.body.email)?.toLowerCase();

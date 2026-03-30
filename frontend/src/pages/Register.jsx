@@ -7,19 +7,18 @@ import StudentPreviewModal from '../modals/StudentPreviewModal';
 import { getPasswordStrength } from '../utils/validationUtils';
 
 
-const isdCountryMap = {
-    "+91": "India", "+92": "Pakistan", "+1": "United States",
-    "+44": "United Kingdom", "+61": "Australia", "+81": "Japan",
-    "+86": "China", "+7": "Russia", "+49": "Germany",
-    "+33": "France", "+971": "UAE", "+880": "Bangladesh",
-    "+94": "Sri Lanka", "+39": "Italy", "+34": "Spain"
+const courseDurationMap = {
+    BCA: 3, MCA: 2, BSc: 3, MSc: 2, BCom: 3, MCom: 2, BA: 3, MA: 2,
+    BBA: 3, MBA: 2, BTech: 4, MTech: 2, BPharma: 4, MPharma: 2,
+    LLB: 3, LLM: 2, BEd: 2, MEd: 2, MBBS: 5, BDS: 5, BHM: 3,
+    'B.Arch': 5, BPT: 4, BFA: 4, BJMC: 3, BMS: 3, BMM: 3
 };
 
 const Register = () => {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
-        name: '', isd: '', email: '', address: '', pincode: '',
-        city: '', state: '', country: '', dob: '', username: '',
+        name: '', phone: '', email: '',
+        city: '', course: '', year: '',
         password: '', confirmPassword: ''
     });
 
@@ -27,6 +26,7 @@ const Register = () => {
     const [showPreview, setShowPreview] = useState(false);
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [submitted, setSubmitted] = useState(false);
 
     const validateField = (name, value) => {
         let error = "";
@@ -37,15 +37,8 @@ const Register = () => {
             case 'email':
                 if (!/^[a-z0-9._%+-]+@gmail\.com$/.test(value)) error = "Enter valid E-mail Address";
                 break;
-            case 'address':
-                if (!/^[A-Za-z0-9 ,]+$/.test(value)) error = "Letters, numbers and spaces allowed";
-                break;
             case 'city':
-            case 'state':
                 if (!/^[A-Za-z ]+$/.test(value)) error = "Only alphabets allowed";
-                break;
-            case 'username':
-                if (!/^[A-Za-z0-9]+$/.test(value)) error = "Only letters and numbers allowed";
                 break;
             case 'confirmPassword':
                 if (value !== formData.password) error = "Password doesn't match";
@@ -60,7 +53,7 @@ const Register = () => {
         const { id, value } = e.target;
         let newValue = value;
 
-        if (id === 'isd') {
+        if (id === 'phone') {
             // Only allow + and digits
             let cleanValue = value.replace(/[^+0-9]/g, '');
 
@@ -79,39 +72,17 @@ const Register = () => {
             cleanValue = cleanValue.slice(0, 13);
             newValue = cleanValue;
 
-            // Auto-fill Country from ISD prefix
-            const matchedISD = Object.keys(isdCountryMap)
-                .filter(code => cleanValue.startsWith(code))
-                .sort((a, b) => b.length - a.length)[0];
-            const matchedCountry = matchedISD ? isdCountryMap[matchedISD] : '';
-            setFormData(prev => ({ ...prev, country: matchedCountry }));
-
             // Validate format
             const isValid = /^\+[0-9]{1,12}$/.test(cleanValue);
             setErrors(prev => ({
                 ...prev,
-                isd: cleanValue.length > 1 && !isValid
+                phone: cleanValue.length > 1 && !isValid
                     ? 'Phone number must start with + ISD code'
                     : ''
             }));
-        }
-        else if (id === 'pincode') {
-            newValue = value.replace(/[^0-9]/g, "").slice(0, 6);
-            if (newValue.length < 6) {
-                setErrors(prev => ({ ...prev, pincode: "Enter 6 digit pincode" }));
-            } else if (newValue.length === 6) {
-                fetch(`https://api.postalpincode.in/pincode/${newValue}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data[0].Status === "Success") {
-                            const po = data[0].PostOffice[data[0].PostOffice.length - 1];
-                            setFormData(prev => ({ ...prev, city: po.District, state: po.State }));
-                            setErrors(prev => ({ ...prev, pincode: "" }));
-                        } else {
-                            setErrors(prev => ({ ...prev, pincode: "Invalid Pincode" }));
-                        }
-                    }).catch(() => setErrors(prev => ({ ...prev, pincode: "Server Error" })));
-            }
+        } else if (id === 'course') {
+            setFormData(prev => ({ ...prev, [id]: newValue, year: '' }));
+            return;
         } else {
             validateField(id, newValue);
         }
@@ -120,9 +91,15 @@ const Register = () => {
     };
 
     const handlePreview = () => {
+        setSubmitted(true);
         const hasErrors = Object.values(errors).some(err => err !== "");
         const hasEmpties = Object.values(formData).some(val => val === "");
-        if (hasErrors || hasEmpties) {
+
+        if (hasEmpties) {
+            toast.error("All fields are required");
+            return;
+        }
+        if (hasErrors) {
             toast.error("Please fill all fields correctly.");
             return;
         }
@@ -136,11 +113,15 @@ const Register = () => {
             const res = await api.post('/students/register', formData);
             console.log(res.data);
 
+            // Clear old cached student data as explicitly requested
+            localStorage.removeItem("student_data");
+
             // Save token and user to localStorage
             localStorage.setItem("token", res.data.token);
             localStorage.setItem("user", JSON.stringify(res.data.user));
+            localStorage.setItem("student_id", res.data.student_id);
 
-            navigate('/admin');
+            navigate(`/student/dashboard/${res.data.student_id}`);
 
         } catch (error) {
             console.log("ERROR", error.response?.data);
@@ -157,25 +138,34 @@ const Register = () => {
             <h2>Student Registration Form</h2>
             <form autoComplete="off">
                 {Object.keys(formData).map(key => {
-                    if (key === 'country') return (
-                        <div key={key}>
-                            <input type="text" id={key} placeholder="Country" value={formData[key]} readOnly className={formData[key] ? "valid" : ""} />
-                        </div>
-                    );
-                    if (key === 'username') return (
-                        <div key={key}>
-                            <input type="text" id={key} placeholder="Username" value={formData[key]} onChange={handleChange} className={errors[key] ? "invalid" : (formData[key] ? "valid" : "")} required autoComplete="new-password" />
-                            <small style={{ color: "red" }}>{errors[key]}</small>
-                        </div>
-                    );
+                    if (key === 'course') {
+                        const years = formData.course ? courseDurationMap[formData.course] : 0;
+                        return (
+                            <div key={key} style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                                <select id="course" value={formData.course} onChange={handleChange} className={submitted && !formData.course ? "invalid" : (formData.course ? "valid" : "")} style={{ flex: 1 }} required>
+                                    <option value="" disabled>Select Course</option>
+                                    {Object.keys(courseDurationMap).map(c => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                                <select id="year" value={formData.year} onChange={handleChange} className={submitted && !formData.year ? "invalid" : (formData.year ? "valid" : "")} style={{ flex: 1 }} required>
+                                    <option value="" disabled>Select Year</option>
+                                    {Array.from({ length: years }, (_, i) => {
+                                        const y = i + 1;
+                                        const label = y === 1 ? '1st' : y === 2 ? '2nd' : y === 3 ? '3rd' : `${y}th`;
+                                        return <option key={y} value={`${label} Year`}>{label} Year</option>;
+                                    })}
+                                </select>
+                            </div>
+                        );
+                    }
+
+                    if (key === 'year') return null; // Rendered alongside course
 
                     let type = "text";
                     let placeholder = key.charAt(0).toUpperCase() + key.slice(1);
                     if (key === 'email') type = "email";
-                    if (key === 'dob') type = "date";
                     if (key === 'password' || key === 'confirmPassword') type = "password";
                     if (key === 'confirmPassword') placeholder = "Confirm Password";
-                    if (key === 'isd') placeholder = "Mobile Number";
+                    if (key === 'phone') placeholder = "Mobile Number (+ISD)";
                     let currentType = type;
                     if (type === "password") {
                         currentType = showPassword ? "text" : "password";
@@ -188,11 +178,8 @@ const Register = () => {
                                 id={key}
                                 placeholder={placeholder}
                                 value={formData[key]}
-                                onChange={key === "city" || key === "state" ? undefined : handleChange}
-
-                                readOnly={key === "city" || key === "state"}
-
-                                className={errors[key] ? "invalid" : (formData[key] ? "valid" : "")}
+                                onChange={handleChange}
+                                className={errors[key] ? "invalid" : (submitted && !formData[key] ? "invalid" : (formData[key] ? "valid" : ""))}
                                 required
                                 autoComplete="new-password"
                             />
@@ -219,13 +206,13 @@ const Register = () => {
 
                 <div style={{ textAlign: "center", marginTop: "10px" }}>
                     <button type="button" className="btn-outline" style={{ width: '50%', borderRadius: '20px', padding: '8px' }}
-                        onClick={() => navigate('/admin')}>
-                        Show Table
+                        onClick={() => navigate('/')}>
+                        Back to Roles
                     </button>
                 </div>
 
                 <p style={{ textAlign: "center", marginTop: "15px" }}>
-                    Already have an account? <Link to="/login" style={{ color: "#2563eb", fontWeight: "600", textDecoration: "none" }}>Login</Link>
+                    Already have an account? <Link to="/student/login" style={{ color: "#2563eb", fontWeight: "600", textDecoration: "none" }}>Login</Link>
                 </p>
             </form>
 

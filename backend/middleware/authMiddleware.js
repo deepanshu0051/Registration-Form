@@ -20,4 +20,14 @@ const protect = (req, res, next) => {
     }
 };
 
-module.exports = { protect };
+const protectAdmin = (req, res, next) => {
+    protect(req, res, () => {
+        if (req.user && req.user.role === 'admin') {
+            next();
+        } else {
+            res.status(401).json({ success: false, message: "Not authorized as admin" });
+        }
+    });
+};
+
+module.exports = { protect, protectAdmin };

@@ -79,20 +79,21 @@ const Admin = () => {
             name: student.name,
             email: student.email,
             city: student.city,
-            username: student.username
+            phone: student.phone,
+            course: student.course,
+            year: student.year
         });
     };
 
     const handleSave = async (id) => {
-        const { name, email, city, username } = editData;
+        const { name, email, city, phone, course, year } = editData;
         
         if (!/^[A-Za-z ]{4,}$/.test(name)) return toast.error("Name must contain only letters & min 4 chars");
         if (!/^[a-z0-9._%+-]+@gmail\.com$/.test(email)) return toast.error("Only valid Gmail address allowed");
         if (!city) return toast.error("Please select a city");
-        if (!/^[A-Za-z0-9]{4,}$/.test(username) || username.includes("@")) return toast.error("Username must be letters & numbers only (no @)");
 
         try {
-            const res = await api.put(`/students/${id}`, { name, email, city, username });
+            const res = await api.put(`/students/${id}`, { name, email, city, phone, course, year });
             if (res.data.success) {
                 toast.success(res.data.message);
                 setEditingId(null);
@@ -105,7 +106,7 @@ const Admin = () => {
 
     const filteredStudents = students.filter(s => {
         const q = searchQuery.toLowerCase();
-        return (s.name?.toLowerCase().includes(q) || s.email?.toLowerCase().includes(q) || s.username?.toLowerCase().includes(q));
+        return (s.name?.toLowerCase().includes(q) || s.email?.toLowerCase().includes(q));
     });
 
     return (
@@ -132,8 +133,9 @@ const Admin = () => {
                         <th className="admin-th">S.No</th>
                         <th className="admin-th">Name</th>
                         <th className="admin-th">Email</th>
+                        <th className="admin-th">Phone</th>
                         <th className="admin-th">City</th>
-                        <th className="admin-th">Username</th>
+                        <th className="admin-th">Course</th>
                         <th className="admin-th">Actions</th>
                     </tr>
                 </thead>
@@ -145,6 +147,7 @@ const Admin = () => {
                                 <>
                                     <td className="admin-td"><input className="admin-input" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} /></td>
                                     <td className="admin-td"><input className="admin-input" type="email" value={editData.email} onChange={e => setEditData({...editData, email: e.target.value})} /></td>
+                                    <td className="admin-td"><input className="admin-input" value={editData.phone} onChange={e => setEditData({...editData, phone: e.target.value})} /></td>
                                     <td className="admin-td">
                                         <select
                                              className="admin-select"
@@ -160,7 +163,7 @@ const Admin = () => {
                                              ))}
                                         </select>
                                     </td>
-                                    <td className="admin-td"><input className="admin-input" value={editData.username} onChange={e => setEditData({...editData, username: e.target.value})} /></td>
+                                    <td className="admin-td"><input className="admin-input" value={editData.course} onChange={e => setEditData({...editData, course: e.target.value})} /></td>
                                     <td className="admin-td">
                                         <button className="action-btn" onClick={() => handleSave(stu.id)} title="Save"><FaSave style={{color: '#2563eb'}}/></button>
                                         <button className="action-btn delete" onClick={() => setEditingId(null)} title="Cancel"><FaTimes /></button>
@@ -170,10 +173,11 @@ const Admin = () => {
                                 <>
                                     <td className="admin-td">{stu.name}</td>
                                     <td className="admin-td">{stu.email}</td>
+                                    <td className="admin-td">{stu.phone}</td>
                                     <td className="admin-td">{stu.city}</td>
-                                    <td className="admin-td">{stu.username}</td>
+                                    <td className="admin-td">{stu.course}</td>
                                     <td className="admin-td">
-                                        <button className="action-btn view" onClick={() => setViewStudent(stu)} title="View"><FaEye /></button>
+                                        <button className="action-btn view" onClick={() => navigate(`/student/dashboard/${stu.id}`, { state: { isAdmin: true } })} title="View"><FaEye /></button>
                                         <button className="action-btn" onClick={() => handleEditClick(stu)} title="Edit"><FaPen /></button>
                                         <button className="action-btn delete" onClick={() => handleDelete(stu.id)} title="Delete"><FaTrash /></button>
                                     </td>

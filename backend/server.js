@@ -6,8 +6,12 @@ const rateLimit = require("express-rate-limit");
 require("dotenv").config();
 
 const { errorHandler } = require("./middleware/errorMiddleware");
+const initDB = require("./utils/initDB");
 
 const app = express();
+
+// Initialize DB schema automatically
+initDB();
 
 // Security Middleware
 app.use(helmet());
@@ -21,7 +25,7 @@ const apiLimiter = rateLimit({
 app.use("/api/", apiLimiter);
 
 // Parse JSON explicitly and configure CORS
-app.use(cors({ origin: "http://localhost:5173", credentials: true })); // VITE default port
+app.use(cors({ origin: ["http://localhost:5173", "http://localhost:5174"], credentials: true })); // VITE and specific access ports
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -30,6 +34,7 @@ app.use(morgan("dev"));
 
 // Routes
 app.use("/api/auth", require("./routes/authRoutes"));
+app.use("/api/admin", require("./routes/adminRoutes"));
 app.use("/api/students", require("./routes/studentRoutes"));
 
 // Global Error Handler
